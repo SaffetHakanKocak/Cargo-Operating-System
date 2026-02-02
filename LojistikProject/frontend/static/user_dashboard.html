@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Kullanıcı Paneli - Yazlab3</title>
+    <link rel="stylesheet" href="/static/css/styles.css?v=6">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+</head>
+
+<body class="map-mode">
+    <header>
+        <div style="width: 100%; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center;">
+            <h1 style="margin: 0;">Kullanıcı Paneli</h1>
+            <nav style="display: flex; align-items: center; gap: 1rem;">
+                <span id="success-message"
+                    style="color: var(--success); display: none; margin-right: 1rem; font-weight: bold;">Talep
+                    oluşturuldu!</span>
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-right: 1rem;">
+                    <span id="user-name-display" style="font-weight: 500;"></span>
+                    <div style="width: 32px; height: 32px; background-color: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem;"
+                        id="user-avatar">
+                        U
+                    </div>
+                </div>
+                <a href="#" onclick="logout(); return false;" class="btn btn-danger" style="padding: 0.5rem 1rem;">Çıkış
+                    Yap</a>
+            </nav>
+        </div>
+    </header>
+
+
+    <div id="map"></div>
+
+
+    <div class="container content-overlay">
+        <div class="card" style="margin-bottom: 1rem; padding: 0.5rem 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;"
+                onclick="togglePanel('create-request-panel')">
+                <h2 style="margin: 0; font-size: 1.2rem;">Kargo Talep Oluştur</h2>
+                <span>&#9660;</span>
+            </div>
+            <div id="create-request-panel" style="display: none; margin-top: 1rem;">
+                <form id="cargo-form">
+                    <div class="form-group">
+                        <label>İlçe (İstasyon)</label>
+                        <select id="station-select" required>
+                            <option value="">Seçiniz...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Kargo Ağırlığı (kg)</label>
+                        <input type="number" id="weight" min="1" step="0.1" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Kargo Sayısı (Adet)</label>
+                        <input type="number" id="count" min="1" value="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Talep Tarihi</label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button type="button" class="btn btn-secondary" onclick="adjustDate(-1)"
+                                style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; padding: 0;">-</button>
+                            <input type="text" id="request-date-display" disabled style="text-align: center; flex: 1;">
+                            <button type="button" class="btn btn-secondary" onclick="adjustDate(1)"
+                                style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; padding: 0;">+</button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn" style="width: 100%;">Talep Gönder</button>
+                </form>
+            </div>
+        </div>
+
+
+        <div class="card" style="padding: 0.5rem 1rem; margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;"
+                onclick="togglePanel('my-requests-panel')">
+                <h2 style="margin: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 0.5rem;">
+                    📦 Kargo Taleplerim
+                </h2>
+                <span id="requests-count-badge"
+                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">0</span>
+            </div>
+            <div id="my-requests-panel" style="display: none; margin-top: 1rem; max-height: 350px; overflow-y: auto;">
+
+                <div id="requests-container"></div>
+            </div>
+        </div>
+
+        <div class="card" style="padding: 0.5rem 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;"
+                onclick="togglePanel('my-route-panel')">
+                <h2 style="margin: 0; font-size: 1.2rem;">🗺️ Rotamı Görüntüle</h2>
+                <span>&#9660;</span>
+            </div>
+            <div id="my-route-panel" style="display: none; margin-top: 1rem;">
+
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Tarih Seçin</label>
+                    <input type="date" id="route-view-date"
+                        style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid #ddd;">
+                </div>
+                <button class="btn" style="width: 100%;" onclick="loadMyRoute()">🔍 Rotamı Göster</button>
+
+
+                <div id="my-route-result" style="display: none; margin-top: 1rem;">
+                    <div id="my-route-status" style="padding: 0.75rem; border-radius: 6px; margin-bottom: 0.5rem;">
+                    </div>
+
+
+                    <div id="my-route-details" style="display: none;">
+
+                        <div id="cargo-summary-section"></div>
+
+
+                        <div id="my-routes-list"></div>
+
+                        <button class="btn btn-secondary" style="width: 100%; margin-top: 0.5rem;"
+                            onclick="clearMyRoute()">
+                            🗑️ Rotayı Temizle
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="logout-modal-overlay" class="logout-modal-overlay">
+        <div class="logout-modal">
+            <div class="logout-modal-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+            </div>
+            <h3 class="logout-modal-title">Çıkış Yapmak İstiyor musunuz?</h3>
+            <p class="logout-modal-message">Oturumunuz sonlandırılacak ve giriş sayfasına yönlendirileceksiniz.</p>
+            <div class="logout-modal-buttons">
+                <button class="logout-btn-cancel" onclick="hideLogoutModal()">Vazgeç</button>
+                <button class="logout-btn-confirm" onclick="confirmLogout()">Çıkış Yap</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/map_logic.js?v=7"></script>
+    <script src="/static/js/user.js?v=4"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', initMap);
+    </script>
+</body>
+
+</html>

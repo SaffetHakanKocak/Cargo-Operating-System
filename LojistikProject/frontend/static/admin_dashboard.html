@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Yönetici Paneli - Yazlab3</title>
+    <link rel="stylesheet" href="/static/css/styles.css?v=6">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+</head>
+
+<body class="map-mode">
+    <header>
+        <div style="width: 100%; padding: 0 1rem; display: flex; align-items: center; justify-content: space-between;">
+            <div style="flex: 0 0 auto; margin-right: 1rem;">
+                <h1 style="margin: 0; font-size: 1.4rem; line-height: 1.2;">Yönetici<br>Paneli</h1>
+            </div>
+            <div style="flex: 1; display: flex; justify-content: center; gap: 0.4rem; flex-wrap: wrap;">
+                <button class="btn" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;"
+                    onclick="toggleRoutePlanningModal()">🗺️ Rota Oluştur</button>
+                <button class="btn" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;"
+                    onclick="toggleRouteDisplayModal()">👁️ Rota Göster</button>
+                <button class="btn btn-secondary" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;"
+                    onclick="toggleRouteInspectModal()">📋 Rota İncele</button>
+                <button class="btn btn-secondary" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;"
+                    onclick="toggleArchiveModal()">📜 Sefer Arşivi</button>
+                <button class="btn btn-secondary" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;"
+                    onclick="toggleStatisticsModal()">📈 İstatistikler</button>
+                <button class="btn btn-secondary" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;"
+                    onclick="toggleDistanceMatrixModal()">📊 Mesafe Matrisi</button>
+                <button class="btn btn-secondary" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;"
+                    onclick="toggleParametersModal()">⚙️ Parametreler</button>
+                <button id="add-station-btn" class="btn btn-secondary"
+                    style="padding: 0.4rem 0.6rem; font-size: 0.85rem;" onclick="toggleAddStationMode()">➕ İstasyon
+                    Ekle</button>
+                <button class="btn btn-secondary" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;"
+                    onclick="toggleStationsModal()">🏢 İstasyonlar</button>
+                <button id="toggle-stations-btn" class="btn btn-secondary"
+                    style="padding: 0.4rem 0.6rem; font-size: 0.85rem;" onclick="toggleStationMarkers()">👁️‍🗨️
+                    İstasyonları Gizle</button>
+            </div>
+            <div style="flex: 0 0 auto; margin-left: 1rem;">
+                <a href="#" onclick="logout(); return false;" class="btn btn-danger"
+                    style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Çıkış</a>
+            </div>
+        </div>
+    </header>
+
+    <div id="map"></div>
+
+
+    <div id="route-planning-modal" class="modal" style="width: 420px; max-height: 85vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 style="margin: 0;">🗺️ Rota Planlama</h2>
+            <button onclick="closeAllModals()"
+                style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+
+
+        <div class="form-group" style="margin-bottom: 1rem;">
+            <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Planlama Tarihi</label>
+            <input type="date" id="planning-date"
+                style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid #ddd;">
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+
+            <div
+                style="padding: 0.75rem; background: linear-gradient(135deg, #e8f5e9, #c8e6c9); border-radius: 8px; border: 1px solid #a5d6a7;">
+                <div style="font-weight: 600; color: #2e7d32; margin-bottom: 0.5rem;">🚛 Sınırsız Araç Senaryosu</div>
+                <p style="font-size: 0.8rem; color: #555; margin: 0 0 0.5rem 0;">Tüm kargolar taşınır. Gerekirse araç
+                    kiralanır.</p>
+                <button class="btn" style="width: 100%;" onclick="optimizeRoutes('unlimited')">
+                    ⚡ Minimum Maliyet ile Çöz
+                </button>
+            </div>
+
+
+            <div
+                style="padding: 0.75rem; background: linear-gradient(135deg, #fff3e0, #ffe0b2); border-radius: 8px; border: 1px solid #ffcc80;">
+                <div style="font-weight: 600; color: #e65100; margin-bottom: 0.5rem;">🔒 Belirli Sayıda Araç Senaryosu
+                </div>
+                <p style="font-size: 0.8rem; color: #555; margin: 0 0 0.5rem 0;">Sadece mevcut filonuz kullanılır.
+                    Kapasite aşılırsa bazı kargolar reddedilir.</p>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-secondary" style="flex: 1; font-size: 0.85rem;"
+                        onclick="optimizeRoutes('limited', 'max_count')">
+                        📦 Max Kargo Sayısı
+                    </button>
+                    <button class="btn btn-secondary" style="flex: 1; font-size: 0.85rem;"
+                        onclick="optimizeRoutes('limited', 'max_weight')">
+                        ⚖️ Max Kargo Ağırlığı
+                    </button>
+                </div>
+            </div>
+
+            <hr style="margin: 0.25rem 0; border-color: #eee;">
+            <button class="btn btn-danger" onclick="deleteRoutes()">🗑️ Rotaları Sil</button>
+        </div>
+
+
+        <div id="result-panel"
+            style="margin-top: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; display: none;">
+            <h3 id="result-title" style="margin: 0 0 0.5rem 0; font-size: 1rem; color: var(--primary);">Optimizasyon
+                Sonucu</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.9rem;">
+                <div>Toplam Maliyet:</div>
+                <div id="result-cost" style="font-weight: 600;">-</div>
+                <div>Toplam Mesafe:</div>
+                <div id="result-distance" style="font-weight: 600;">-</div>
+                <div>Araç Sayısı:</div>
+                <div id="result-vehicles" style="font-weight: 600;">-</div>
+                <div>Taşınan Kargo:</div>
+                <div id="result-cargo" style="font-weight: 600;">-</div>
+                <div>Taşınan Ağırlık:</div>
+                <div id="result-weight" style="font-weight: 600;">-</div>
+            </div>
+
+
+            <div id="rejection-panel"
+                style="margin-top: 0.75rem; padding: 0.75rem; background: #fff5f5; border-radius: 6px; border: 1px solid #ffcdd2; display: none;">
+                <div style="font-weight: 600; color: #c62828; margin-bottom: 0.25rem;">⚠️ Reddedilen Kargolar</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem; font-size: 0.85rem;">
+                    <div>Reddedilen Adet:</div>
+                    <div id="rejected-count" style="font-weight: 600; color: #c62828;">-</div>
+                    <div>Reddedilen Ağırlık:</div>
+                    <div id="rejected-weight" style="font-weight: 600; color: #c62828;">-</div>
+                    <div>Kabul Oranı (Adet):</div>
+                    <div id="acceptance-rate-count" style="font-weight: 600; color: #2e7d32;">-</div>
+                    <div>Kabul Oranı (kg):</div>
+                    <div id="acceptance-rate-weight" style="font-weight: 600; color: #2e7d32;">-</div>
+                </div>
+            </div>
+        </div>
+        <div id="status-msg" style="margin-top: 1rem; font-weight: bold; color: var(--primary);"></div>
+    </div>
+
+
+    <div id="parameters-modal" class="modal" style="width: 400px;">
+        <div style="margin-bottom: 1rem;">
+            <h2 style="margin: 0;">⚙️ Parametreler</h2>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <div class="form-group">
+                <label style="font-weight: 600; margin-bottom: 0.25rem; display: block;">Km Başı Ücret (birim)</label>
+                <input type="number" id="param-cost-per-km" value="1" min="0.1" step="0.1"
+                    style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid #ddd;">
+            </div>
+
+
+            <div class="form-group">
+                <label style="font-weight: 600; margin-bottom: 0.25rem; display: block;">Kiralık Araç Kapasitesi
+                    (kg)</label>
+                <input type="number" id="param-rental-capacity" value="500" min="1" step="1"
+                    style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid #ddd;">
+            </div>
+
+
+            <div class="form-group">
+                <label style="font-weight: 600; margin-bottom: 0.25rem; display: block;">Kiralık Araç Bedeli
+                    (birim)</label>
+                <input type="number" id="param-rental-cost" value="200" min="0" step="1"
+                    style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid #ddd;">
+            </div>
+
+            <hr style="margin: 0.5rem 0; border-color: #eee;">
+
+            <h3 style="margin: 0; font-size: 1rem; color: var(--text-light);">Mevcut Araç Kapasiteleri</h3>
+
+
+            <div class="form-group">
+                <label style="font-weight: 600; margin-bottom: 0.25rem; display: block;">Kamyon 1 Kapasitesi
+                    (kg)</label>
+                <input type="number" id="param-truck1-capacity" value="500" min="1" step="1"
+                    style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid #ddd;">
+            </div>
+
+
+            <div class="form-group">
+                <label style="font-weight: 600; margin-bottom: 0.25rem; display: block;">Kamyon 2 Kapasitesi
+                    (kg)</label>
+                <input type="number" id="param-truck2-capacity" value="750" min="1" step="1"
+                    style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid #ddd;">
+            </div>
+
+
+            <div class="form-group">
+                <label style="font-weight: 600; margin-bottom: 0.25rem; display: block;">Tır 1 Kapasitesi (kg)</label>
+                <input type="number" id="param-truck3-capacity" value="1000" min="1" step="1"
+                    style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid #ddd;">
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.5rem;">
+            <button class="btn btn-secondary" onclick="closeAllModals()">İptal</button>
+            <button class="btn" onclick="saveParameters()">Kaydet</button>
+        </div>
+    </div>
+
+
+    <div id="route-display-modal" class="modal" style="width: 380px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 style="margin: 0;">👁️ Rota Göster</h2>
+            <button onclick="closeAllModals()"
+                style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+
+
+        <div class="form-group" style="margin-bottom: 1rem;">
+            <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Tarih Seçin</label>
+            <input type="date" id="route-display-date"
+                style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid #ddd;"
+                onchange="loadRoutesList()">
+        </div>
+
+
+        <div id="routes-list-container" style="max-height: 300px; overflow-y: auto; margin-bottom: 1rem;">
+            <div id="routes-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <p style="color: var(--text-light); text-align: center;">Tarih seçin...</p>
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; gap: 0.5rem;">
+            <button class="btn btn-secondary" onclick="selectAllRoutes()">Tümünü Seç</button>
+            <button class="btn btn-secondary" onclick="deselectAllRoutes()">Tümünü Kaldır</button>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+            <button class="btn btn-secondary" onclick="closeAllModals()">İptal</button>
+            <button class="btn" onclick="applyRouteFilter()">Uygula</button>
+        </div>
+    </div>
+
+
+    <div id="distance-matrix-modal" class="modal" style="width: 90%; max-width: 1000px; max-height: 80vh;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 style="margin: 0;">📊 İstasyonlar Arası Mesafe Matrisi (km)</h2>
+            <button onclick="closeAllModals()"
+                style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+
+        <div id="matrix-loading" style="text-align: center; padding: 2rem;">
+            <p>Mesafeler hesaplanıyor (OSRM API)...</p>
+        </div>
+
+        <div id="matrix-container" style="overflow: auto; max-height: 60vh; display: none;">
+            <table id="distance-matrix-table" style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+            </table>
+        </div>
+
+        <div style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-light);">
+            <p>💡 Mesafeler OSRM API kullanılarak gerçek yol mesafeleri olarak hesaplanmıştır.</p>
+        </div>
+    </div>
+
+
+    <div id="route-inspect-modal" class="modal" style="width: 95%; max-width: 1400px; max-height: 90vh;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 style="margin: 0;">📋 Rota Detaylı İnceleme</h2>
+            <button onclick="closeAllModals()"
+                style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+            <label>Tarih Seçin:</label>
+            <input type="date" id="inspect-date" class="form-control" onchange="loadInspectRoutes()">
+        </div>
+
+        <div style="display: flex; gap: 2rem; height: 60vh;">
+            <div style="flex: 1; border-right: 1px solid #ddd; padding-right: 1rem; overflow-y: auto;">
+                <h3>Araçlar</h3>
+                <div id="inspect-vehicle-list">
+                    <p style="color: #666;">Lütfen tarih seçin.</p>
+                </div>
+            </div>
+
+            <div style="flex: 2; overflow-y: auto; padding-left: 1rem;">
+                <h3 id="inspect-details-title">Rota Adımları & Kararlar</h3>
+                <div id="inspect-logs-container">
+                    <p style="color: #666; font-style: italic;">Detayları görmek için soldan bir araç seçin.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="modal-overlay" class="modal-overlay" onclick="closeAllModals()"></div>
+    <div id="stations-modal" class="modal">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2>İstasyon Bilgileri</h2>
+            <button onclick="toggleStationsModal()"
+                style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+        <div style="max-height: 400px; overflow-y: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #ddd;">
+                        <th style="padding: 0.5rem; text-align: left;">ID</th>
+                        <th style="padding: 0.5rem; text-align: left;">İsim</th>
+                        <th style="padding: 0.5rem; text-align: left;">Lat</th>
+                        <th style="padding: 0.5rem; text-align: left;">Lon</th>
+                        <th style="padding: 0.5rem; text-align: right;">İşlem</th>
+                    </tr>
+                </thead>
+                <tbody id="stations-list">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="archive-modal" class="modal" style="width: 95%; max-width: 1000px; max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 style="margin: 0;">📜 Sefer Arşivi</h2>
+            <button onclick="closeAllModals()"
+                style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+
+
+        <div id="archive-loading" style="text-align: center; padding: 2rem;">
+            <div style="font-size: 2rem; margin-bottom: 1rem;">📦</div>
+            <p style="color: #6b7280;">Arşiv yükleniyor...</p>
+        </div>
+
+
+        <div id="archive-content" style="display: none;">
+            <div id="archive-summary"
+                style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                <div
+                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1rem; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 0.85rem; opacity: 0.9;">Toplam Sefer</div>
+                    <div style="font-size: 2rem; font-weight: 700;" id="archive-total-routes">0</div>
+                </div>
+                <div
+                    style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 1rem; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 0.85rem; opacity: 0.9;">Görüntülenen Tarih</div>
+                    <div style="font-size: 2rem; font-weight: 700;" id="archive-total-dates">0</div>
+                </div>
+                <div
+                    style="background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%); color: white; padding: 1rem; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 0.85rem; opacity: 0.9;">Toplam Kargo</div>
+                    <div style="font-size: 2rem; font-weight: 700;" id="archive-total-cargo">0</div>
+                    <div style="font-size: 0.75rem; opacity: 0.8;">adet</div>
+                </div>
+                <div
+                    style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 1rem; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 0.85rem; opacity: 0.9;">Toplam Maliyet</div>
+                    <div style="font-size: 2rem; font-weight: 700;" id="archive-total-cost">0</div>
+                    <div style="font-size: 0.75rem; opacity: 0.8;">birim</div>
+                </div>
+            </div>
+
+
+            <div id="archive-dates-list" style="max-height: 500px; overflow-y: auto;">
+            </div>
+        </div>
+
+
+        <div id="archive-empty" style="display: none; text-align: center; padding: 3rem;">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">📭</div>
+            <h3 style="color: #374151; margin-bottom: 0.5rem;">Henüz Sefer Kaydı Yok</h3>
+            <p style="color: #6b7280;">Rota oluşturduğunuzda burada görüntülenecek.</p>
+        </div>
+    </div>
+
+
+    <div id="statistics-modal" class="modal" style="width: 95%; max-width: 1200px; max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 style="margin: 0;">📈 İstatistikler & Analiz</h2>
+            <button onclick="closeAllModals()"
+                style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+
+
+        <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem;">
+            <div class="form-group" style="margin: 0; flex: 1;">
+                <label style="font-weight: 600;">Tarih Seçin</label>
+                <input type="date" id="stats-date"
+                    style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid #ddd;">
+            </div>
+            <button class="btn" onclick="loadStatistics()" style="margin-top: 1.5rem;">📊 Verileri Yükle</button>
+        </div>
+
+
+        <div id="stats-loading" style="text-align: center; padding: 2rem;">
+            <p style="color: #6b7280;">Tarih seçin ve "Verileri Yükle" butonuna tıklayın.</p>
+        </div>
+
+
+        <div id="stats-content" style="display: none;">
+            <div
+                style="display: flex; gap: 0.25rem; margin-bottom: 1.5rem; background: #f3f4f6; padding: 0.25rem; border-radius: 8px;">
+                <button class="modal-tab active" onclick="switchStatsTab('overview')"
+                    style="flex: 1; padding: 0.75rem; border: none; background: white; border-radius: 6px; cursor: pointer; font-weight: 500;">📊
+                    Genel Bakış</button>
+                <button class="modal-tab" onclick="switchStatsTab('vehicles')"
+                    style="flex: 1; padding: 0.75rem; border: none; background: transparent; border-radius: 6px; cursor: pointer;">🚛
+                    Araçlar</button>
+                <button class="modal-tab" onclick="switchStatsTab('users')"
+                    style="flex: 1; padding: 0.75rem; border: none; background: transparent; border-radius: 6px; cursor: pointer;">👥
+                    Kullanıcılar</button>
+
+            </div>
+
+            <div id="stats-overview" class="stats-tab-content" style="display: block;">
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div
+                        style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1rem; border-radius: 12px;">
+                        <div style="font-size: 0.85rem; opacity: 0.9;">Toplam Maliyet</div>
+                        <div style="font-size: 1.75rem; font-weight: 700;" id="stat-total-cost">-</div>
+                        <div style="font-size: 0.8rem; opacity: 0.8;">birim</div>
+                    </div>
+                    <div
+                        style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 1rem; border-radius: 12px;">
+                        <div style="font-size: 0.85rem; opacity: 0.9;">Toplam Mesafe</div>
+                        <div style="font-size: 1.75rem; font-weight: 700;" id="stat-total-distance">-</div>
+                        <div style="font-size: 0.8rem; opacity: 0.8;">km</div>
+                    </div>
+                    <div
+                        style="background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%); color: white; padding: 1rem; border-radius: 12px;">
+                        <div style="font-size: 0.85rem; opacity: 0.9;">Taşınan Kargo</div>
+                        <div style="font-size: 1.75rem; font-weight: 700;" id="stat-total-cargo">-</div>
+                        <div style="font-size: 0.8rem; opacity: 0.8;">adet</div>
+                    </div>
+                    <div
+                        style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 1rem; border-radius: 12px;">
+                        <div style="font-size: 0.85rem; opacity: 0.9;">Taşınan Ağırlık</div>
+                        <div style="font-size: 1.75rem; font-weight: 700;" id="stat-total-weight">-</div>
+                        <div style="font-size: 0.8rem; opacity: 0.8;">kg</div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="background: #f8fafc; padding: 1rem; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 0.85rem; color: #6b7280;">Toplam Araç</div>
+                        <div style="font-size: 2rem; font-weight: 700; color: #374151;" id="stat-vehicle-count">-</div>
+                    </div>
+                    <div style="background: #ecfdf5; padding: 1rem; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 0.85rem; color: #6b7280;">Mevcut Araç</div>
+                        <div style="font-size: 2rem; font-weight: 700; color: #22c55e;" id="stat-owned">-</div>
+                    </div>
+                    <div style="background: #fef3c7; padding: 1rem; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 0.85rem; color: #6b7280;">Kiralık Araç</div>
+                        <div style="font-size: 2rem; font-weight: 700; color: #f59e0b;" id="stat-rented">-</div>
+                    </div>
+                </div>
+
+
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div
+                        style="background: white; border: 1px solid #e5e7eb; padding: 0.75rem; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 0.75rem; color: #6b7280;">Ortalama Maliyet/Rota</div>
+                        <div style="font-size: 1.25rem; font-weight: 600;" id="stat-avg-cost">-</div>
+                    </div>
+                    <div
+                        style="background: white; border: 1px solid #e5e7eb; padding: 0.75rem; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 0.75rem; color: #6b7280;">Ortalama Mesafe/Rota</div>
+                        <div style="font-size: 1.25rem; font-weight: 600;" id="stat-avg-distance">-</div>
+                    </div>
+                    <div
+                        style="background: white; border: 1px solid #e5e7eb; padding: 0.75rem; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 0.75rem; color: #6b7280;">Maliyet/kg</div>
+                        <div style="font-size: 1.25rem; font-weight: 600;" id="stat-cost-per-kg">-</div>
+                    </div>
+                    <div
+                        style="background: white; border: 1px solid #e5e7eb; padding: 0.75rem; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 0.75rem; color: #6b7280;">Kabul Oranı</div>
+                        <div style="font-size: 1.25rem; font-weight: 600; color: #22c55e;" id="stat-acceptance-rate">-
+                        </div>
+                    </div>
+                </div>
+
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div style="background: white; border: 1px solid #e5e7eb; padding: 1rem; border-radius: 12px;">
+                        <h4 style="margin: 0 0 1rem 0; color: #374151;">🚛 Araç Kapasite Kullanımı</h4>
+                        <div style="height: 250px;">
+                            <canvas id="capacity-chart"></canvas>
+                        </div>
+                    </div>
+                    <div style="background: white; border: 1px solid #e5e7eb; padding: 1rem; border-radius: 12px;">
+                        <h4 style="margin: 0 0 1rem 0; color: #374151;">📍 İstasyon Dağılımı (Ağırlık)</h4>
+                        <div style="height: 250px;">
+                            <canvas id="station-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div id="stats-vehicles" class="stats-tab-content" style="display: none;">
+                <div id="vehicles-list" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;"></div>
+            </div>
+
+
+            <div id="stats-users" class="stats-tab-content" style="display: none;">
+                <div id="users-list"></div>
+            </div>
+
+
+
+        </div>
+    </div>
+
+    <div id="station-name-modal" class="modal" style="width: 350px;">
+        <h3 style="margin-bottom: 1rem; color: var(--primary);">Yeni İstasyon Ekle</h3>
+        <p style="margin-bottom: 1rem; color: var(--text-light); font-size: 0.9rem;">Lütfen istasyon için bir isim
+            giriniz.</p>
+        <div id="station-modal-error"
+            style="color: var(--danger); margin-bottom: 0.5rem; font-size: 0.9rem; display: none;"></div>
+        <div class="form-group">
+            <input type="text" id="new-station-name" placeholder="Örn: Merkez Depo" autocomplete="off"
+                onkeypress="handleEnterKey(event)">
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+            <button class="btn btn-secondary" onclick="closeAllModals()">İptal</button>
+            <button class="btn" onclick="confirmAddStation()">Ekle</button>
+        </div>
+    </div>
+
+    <div id="logout-modal-overlay" class="logout-modal-overlay">
+        <div class="logout-modal">
+            <div class="logout-modal-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+            </div>
+            <h3 class="logout-modal-title">Çıkış Yapmak İstiyor musunuz?</h3>
+            <p class="logout-modal-message">Oturumunuz sonlandırılacak ve giriş sayfasına yönlendirileceksiniz.</p>
+            <div class="logout-modal-buttons">
+                <button class="logout-btn-cancel" onclick="hideLogoutModal()">Vazgeç</button>
+                <button class="logout-btn-confirm" onclick="confirmLogout()">Çıkış Yap</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/map_logic.js?v=10"></script>
+    <script src="/static/js/admin.js?v=13"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', initMap);
+    </script>
+</body>
+
+</html>
